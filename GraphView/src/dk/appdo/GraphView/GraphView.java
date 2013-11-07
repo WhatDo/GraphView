@@ -97,7 +97,7 @@ public class GraphView extends FrameLayout {
 
 	public void addAllPoints(List<Point> points) {
 		mData.addAll(points);
-		updateMaxMinVal((Point[]) points.toArray());
+		updateMaxMinVal(points);
 		mView.invalidate();
 	}
 
@@ -111,6 +111,18 @@ public class GraphView extends FrameLayout {
 			}
 		}
 	}
+
+	private void updateMaxMinVal(List<Point> points) {
+		for (Point p : points) {
+			if (p.y > mMaxVal) {
+				mMaxVal = p.y;
+			}
+			if (p.y < mMinVal) {
+				mMinVal = p.y;
+			}
+		}
+	}
+
 
 	public void setGraphColor(int color) {
 		mGraphPaint.setColor(color);
