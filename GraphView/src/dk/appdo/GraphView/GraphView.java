@@ -41,7 +41,9 @@ public class GraphView extends FrameLayout {
 
 	private int mMaxVal = Integer.MIN_VALUE;
 
-	private boolean mAutoScale = true;
+	private int mMinVal = Integer.MAX_VALUE;
+
+	private boolean mAutoScaleY = true;
 
 	private int mXScale = 1;
 
@@ -83,18 +85,31 @@ public class GraphView extends FrameLayout {
 		mGraphYAxisDirection = direction;
 	}
 
-	public void setDrawDataPoints(boolean todraw) {
-		mDrawDataPoints = todraw;
+	public void setDrawDataPoints(boolean toDraw) {
+		mDrawDataPoints = toDraw;
 	}
 
 	public void addPoint(Point p) {
 		mData.add(p);
+		updateMaxMinVal(p);
 		mView.invalidate();
 	}
 
 	public void addAllPoints(List<Point> points) {
 		mData.addAll(points);
+		updateMaxMinVal((Point[]) points.toArray());
 		mView.invalidate();
+	}
+
+	private void updateMaxMinVal(Point... points) {
+		for (Point p : points) {
+			if (p.y > mMaxVal) {
+				mMaxVal = p.y;
+			}
+			if (p.y < mMinVal) {
+				mMinVal = p.y;
+			}
+		}
 	}
 
 	public void setGraphColor(int color) {
@@ -103,6 +118,10 @@ public class GraphView extends FrameLayout {
 
 	public void setXAxisYPos(float percentage) {
 		mGraphXBase = percentage;
+	}
+
+	public void setShowXAxis(boolean show) {
+		mDrawXAxis = show;
 	}
 
 	private class CanvasView extends View {
@@ -118,10 +137,14 @@ public class GraphView extends FrameLayout {
 		@Override
 		protected void onDraw(Canvas canvas) {
 
-			int xFactor = 1;
-			int yFactor = mGraphYAxisDirection;
+			float xFactor = 1;
+			float yFactor = mGraphYAxisDirection;
 			int xOffset = 0;
 			int yOffset = (int) (mHeight * (1-mGraphXBase));
+
+			if (mAutoScaleY) {
+				yFactor = (int) (((float) mHeight )/ mMaxVal * yFactor);
+			}
 
 			if (mDrawXAxis) {
 				canvas.drawLine(0, yOffset, mWidth, yOffset, mGraphPaint);
@@ -129,15 +152,15 @@ public class GraphView extends FrameLayout {
 
 			mPath.reset();
 			if (mData.size() > 0) {
-				mPath.moveTo(mData.get(0).x, mData.get(0).y);
+				mPath.moveTo(mData.get(0).x * xFactor + xOffset, mData.get(0).y * yFactor + yOffset);
 				for (int i = 1; i < mData.size(); i++) {
 					Point p = mData.get(i);
 					Point prev = mData.get((i - 1));
 
-					int px = p.x * xFactor + xOffset;
-					int prx = prev.x * xFactor + xOffset;
-					int py = p.y * yFactor + yOffset;
-					int pry = prev.y * yFactor + yOffset;
+					int px = (int) (p.x * xFactor + xOffset);
+					int prx = (int) (prev.x * xFactor + xOffset);
+					int py = (int) (p.y * yFactor + yOffset);
+					int pry = (int) (prev.y * yFactor + yOffset);
 
 					int tmpx = (px + prx) / 2;
 					int tmpy = (py + pry) / 2;
