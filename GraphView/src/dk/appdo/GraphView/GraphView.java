@@ -101,25 +101,18 @@ public class GraphView extends FrameLayout {
 		mView.invalidate();
 	}
 
-	private void updateMaxMinVal(Point... points) {
-		for (Point p : points) {
-			if (p.y > mMaxVal) {
-				mMaxVal = p.y;
-			}
-			if (p.y < mMinVal) {
-				mMinVal = p.y;
-			}
+	private void updateMaxMinVal(Point p) {
+		if (p.y > mMaxVal) {
+			mMaxVal = p.y;
+		}
+		if (p.y < mMinVal) {
+			mMinVal = p.y;
 		}
 	}
 
 	private void updateMaxMinVal(List<Point> points) {
 		for (Point p : points) {
-			if (p.y > mMaxVal) {
-				mMaxVal = p.y;
-			}
-			if (p.y < mMinVal) {
-				mMinVal = p.y;
-			}
+			updateMaxMinVal(p);
 		}
 	}
 
