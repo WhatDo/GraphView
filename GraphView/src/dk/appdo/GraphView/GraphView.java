@@ -79,6 +79,7 @@ public class GraphView extends FrameLayout {
 		mGraphPaint.setStyle(Paint.Style.STROKE);
 		mGraphPaint.setStrokeWidth(DEFAULT_GRAPH_WIDTH);
 		mGraphPaint.setStrokeJoin(Paint.Join.ROUND);
+		mGraphPaint.setPathEffect(new CornerPathEffect(10));
 	}
 
 	public void setGraphPositiveYAxis(int direction) {
@@ -145,10 +146,10 @@ public class GraphView extends FrameLayout {
 			float xFactor = 1;
 			float yFactor = mGraphYAxisDirection;
 			int xOffset = 0;
-			int yOffset = (int) (mHeight * (1-mGraphXBase));
+			int yOffset = (int) (mHeight * (1 - mGraphXBase));
 
 			if (mAutoScaleY) {
-				yFactor = (int) (((float) mHeight )/ mMaxVal * yFactor);
+				//yFactor = (int) (((float) mHeight )/ mMaxVal * yFactor);
 			}
 
 			if (mDrawXAxis) {
@@ -158,20 +159,28 @@ public class GraphView extends FrameLayout {
 			mPath.reset();
 			if (mData.size() > 0) {
 				mPath.moveTo(mData.get(0).x * xFactor + xOffset, mData.get(0).y * yFactor + yOffset);
-				for (int i = 1; i < mData.size(); i++) {
+				for (int i = 1; i < mData.size() - 1; i++) {
 					Point p = mData.get(i);
-					Point prev = mData.get((i - 1));
+					Point prev = mData.get(i - 1);
+					Point next = mData.get(i + 1);
 
 					int px = (int) (p.x * xFactor + xOffset);
 					int prx = (int) (prev.x * xFactor + xOffset);
+					int pnx = (int) (next.x * xFactor + xOffset);
 					int py = (int) (p.y * yFactor + yOffset);
 					int pry = (int) (prev.y * yFactor + yOffset);
+					int pny = (int) (next.y * yFactor + yOffset);
 
-					int tmpx = (px + prx) / 2;
-					int tmpy = (py + pry) / 2;
+					int dx = (pnx - prx) / 3;
+					int dy = (pny - pry) / 3;
+//
+//					int tmpx = (px + prx) / 2;
+//					int tmpy = (py + pry) / 2;
 
-					mPath.quadTo((prx + tmpx) / 2, pry, tmpx, tmpy);
-					mPath.quadTo((tmpx + px) / 2, py, px, py);
+					//mPath.quadTo((prx + tmpx) / 2, pry, tmpx, tmpy);
+					//mPath.quadTo((tmpx + px) / 2, py, px, py);
+
+					mPath.cubicTo(prx, pry, px - dx, py - dy, px, py);
 
 					if (mDrawDataPoints)
 						canvas.drawCircle(p.x, p.y, 10, mGraphPaint);
