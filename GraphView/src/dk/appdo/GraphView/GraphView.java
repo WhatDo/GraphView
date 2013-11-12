@@ -21,7 +21,7 @@ public class GraphView extends FrameLayout {
 	public static final int DIRECTION_DOWN = 1;
 	public static final int DIRECTION_UP = -1;
 
-	//private static final int
+	private static final int DATA_WIDTH_AUTO = -1;
 
 	private static final int DEFAULT_GRAPH_COLOR = Color.GRAY;
 	private static final int DEFAULT_GRAPH_WIDTH = 5;
@@ -33,21 +33,25 @@ public class GraphView extends FrameLayout {
 
 	private List<Point> mData = new ArrayList<Point>();
 
+	private RotatingQueue<Point> mQueue;
+
 	private Paint mGraphPaint = new Paint();
 
 	private CanvasView mView;
 
 	private boolean mDrawDataPoints = false;
 
-	private int mMaxVal = Integer.MIN_VALUE;
+	private float mMaxVal = Integer.MIN_VALUE;
 
-	private int mMinVal = Integer.MAX_VALUE;
+	private float mMinVal = Integer.MAX_VALUE;
 
 	private boolean mAutoScaleY = true;
 
 	private int mXScale = 1;
 
 	private int mYScale = 1;
+
+	private int mDataWidth = DATA_WIDTH_AUTO;
 
 	private float mGraphXBase = 0.0f;
 
@@ -93,13 +97,28 @@ public class GraphView extends FrameLayout {
 	public void addPoint(Point p) {
 		mData.add(p);
 		updateMaxMinVal(p);
+		addToQueueIfNotNull(p);
 		mView.invalidate();
 	}
 
 	public void addAllPoints(List<Point> points) {
 		mData.addAll(points);
 		updateMaxMinVal(points);
+		addToQueueIfNotNull(points);
+
 		mView.invalidate();
+	}
+
+	private void addToQueueIfNotNull(Point p) {
+		if (mQueue != null) {
+			mQueue.insertElement(p);
+		}
+	}
+
+	private void addToQueueIfNotNull(List<Point> points) {
+		for (Point p : points) {
+			addToQueueIfNotNull(p);
+		}
 	}
 
 	private void updateMaxMinVal(Point p) {
@@ -130,11 +149,28 @@ public class GraphView extends FrameLayout {
 		mDrawXAxis = show;
 	}
 
+	/**
+	 * Sets the number of points shown
+	 *
+	 * @param width
+	 */
+	public void setDataWidth(int width) {
+		mQueue = new RotatingQueue<Point>(width);
+		mDataWidth = width;
+
+		for (Point p : mData) {
+			mQueue.insertElement(p);
+		}
+	}
+
 	private class CanvasView extends View {
 
 		private int mHeight;
 		private int mWidth;
 		private Path mPath = new Path();
+
+		private RectF mPathBounds = new RectF();
+		private RectF mViewBounds = new RectF();
 
 		public CanvasView(Context context) {
 			super(context);
@@ -145,12 +181,10 @@ public class GraphView extends FrameLayout {
 
 			float xFactor = 1;
 			float yFactor = mGraphYAxisDirection;
-			int xOffset = 0;
-			int yOffset = (int) (mHeight * (1 - mGraphXBase));
+			float xOffset = 0;
+			float yOffset = (mHeight * (1 - mGraphXBase));
 
-			if (mAutoScaleY) {
-				//yFactor = (int) (((float) mHeight )/ mMaxVal * yFactor);
-			}
+			Matrix mMatrix = new Matrix();
 
 			if (mDrawXAxis) {
 				canvas.drawLine(0, yOffset, mWidth, yOffset, mGraphPaint);
@@ -168,21 +202,24 @@ public class GraphView extends FrameLayout {
 					else
 						next = p;
 
-					int px = (int) (p.x * xFactor + xOffset);
-					int prx = (int) (prev.x * xFactor + xOffset);
-					int pnx = (int) (next.x * xFactor + xOffset);
-					int py = (int) (p.y * yFactor + yOffset);
-					int pry = (int) (prev.y * yFactor + yOffset);
-					int pny = (int) (next.y * yFactor + yOffset);
+					float px = (p.x * xFactor + xOffset);
+					float prx = (prev.x * xFactor + xOffset);
+					float pnx = (next.x * xFactor + xOffset);
+					float py = (p.y * yFactor + yOffset);
+					float pry = (prev.y * yFactor + yOffset);
+					float pny = (next.y * yFactor + yOffset);
 
-					int dx = (pnx - prx) / 3;
-					int dy = (pny - pry) / 3;
+					float dx = (pnx - prx) / 3;
+					float dy = (pny - pry) / 3;
 
 					mPath.cubicTo(prx, pry, px - dx, py - dy, px, py);
 
 					if (mDrawDataPoints)
 						canvas.drawCircle(px, py, 10, mGraphPaint);
 				}
+				mPath.computeBounds(mPathBounds, false);
+				mMatrix.setRectToRect(mPathBounds, mViewBounds, Matrix.ScaleToFit.FILL);
+				mPath.transform(mMatrix);
 				canvas.drawPath(mPath, mGraphPaint);
 			}
 		}
@@ -192,6 +229,7 @@ public class GraphView extends FrameLayout {
 			super.onMeasure(widthMeasureSpec, heightMeasureSpec);
 			mHeight = MeasureSpec.getSize(heightMeasureSpec);
 			mWidth = MeasureSpec.getSize(widthMeasureSpec);
+			mViewBounds.set(0, 0, mWidth, mHeight);
 		}
 	}
 }

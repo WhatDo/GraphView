@@ -2,6 +2,7 @@ package dk.appdo.GraphView;
 
 import android.app.Activity;
 import android.graphics.Point;
+import android.graphics.PointF;
 import android.os.Bundle;
 
 import java.util.ArrayList;
@@ -16,13 +17,22 @@ public class MyActivity extends Activity {
 		super.onCreate(savedInstanceState);
 		GraphView graph = new GraphView(this);
 		Point P = new Point();
-		List<Point> points = new ArrayList<Point>();
+		List<PointF> points = new ArrayList<PointF>();
 		getWindowManager().getDefaultDisplay().getSize(P);
-		for (int i = 0; i < 20; i++) {
-			Point p = new Point(i * P.x/20, i%10 * ((int) (Math.random() * 100)));
-			points.add(p);
+		for (int i = 0; i < 10; i++) {
+			int amp = ((int) (Math.random() * 10));
+			for (int j = -10; j < 10; j++) {
+				PointF p = new PointF((j + 10 + i * 20) * P.x/200, -j*j * amp + amp*100);
+//				Log.d("points", "Added (" + p.x + ", " + p.y + ")");
+				points.add(p);
+			}
+
 		}
-		graph.addAllPoints(points);
+//		points.add(new Point(0, 70));
+//		points.add(new Point(300, 72));
+//		points.add(new Point(600, 64));
+//		graph.addAllPoints(points);
+		graph.setDrawDataPoints(true);
 		setContentView(graph);
 	}
 }
