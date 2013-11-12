@@ -159,10 +159,14 @@ public class GraphView extends FrameLayout {
 			mPath.reset();
 			if (mData.size() > 0) {
 				mPath.moveTo(mData.get(0).x * xFactor + xOffset, mData.get(0).y * yFactor + yOffset);
-				for (int i = 1; i < mData.size() - 1; i++) {
+				for (int i = 1; i < mData.size(); i++) {
 					Point p = mData.get(i);
 					Point prev = mData.get(i - 1);
-					Point next = mData.get(i + 1);
+					Point next;
+					if (i < mData.size() - 1)
+						next = mData.get(i + 1);
+					else
+						next = p;
 
 					int px = (int) (p.x * xFactor + xOffset);
 					int prx = (int) (prev.x * xFactor + xOffset);
@@ -173,20 +177,12 @@ public class GraphView extends FrameLayout {
 
 					int dx = (pnx - prx) / 3;
 					int dy = (pny - pry) / 3;
-//
-//					int tmpx = (px + prx) / 2;
-//					int tmpy = (py + pry) / 2;
-
-					//mPath.quadTo((prx + tmpx) / 2, pry, tmpx, tmpy);
-					//mPath.quadTo((tmpx + px) / 2, py, px, py);
 
 					mPath.cubicTo(prx, pry, px - dx, py - dy, px, py);
 
 					if (mDrawDataPoints)
-						canvas.drawCircle(p.x, p.y, 10, mGraphPaint);
+						canvas.drawCircle(px, py, 10, mGraphPaint);
 				}
-				mPath.lineTo(mData.get(mData.size() - 1).x, mData.get(mData.size() - 1).y);
-
 				canvas.drawPath(mPath, mGraphPaint);
 			}
 		}
