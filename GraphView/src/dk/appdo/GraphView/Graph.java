@@ -1,6 +1,8 @@
 package dk.appdo.GraphView;
 
 import android.graphics.*;
+import android.util.Log;
+import android.view.View;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,7 +26,13 @@ public abstract class Graph<T> {
 	private Path mPath;
 	private Path mDrawPath;
 
+	private RectF mWindowRect;
+	private RectF mPathRect;
+
+	private Matrix mMatrix;
+
 	private PointF mPrevPoint;
+	private PointF mPrevPoint2;
 	private PointF mTmpPoint;
 
 	private Paint mPathPaint;
@@ -35,12 +43,13 @@ public abstract class Graph<T> {
 	private float mXFactor = 1;
 	private float mYFactor = mGraphYAxisDirection;
 	private float mXOffset = 0;
-//	private float mYOffset = (mHeight * (1 - mGraphXBase));
+	private float mYOffset = mHeight;
 
-	public Graph(int width, int height) {
+	private GraphView mParent;
 
-		mWidth = width;
-		mHeight = height;
+	private boolean mGotDimensions = false;
+
+	public Graph() {
 
 		mPoints = new ArrayList<T>();
 
@@ -48,8 +57,14 @@ public abstract class Graph<T> {
 		mDrawPath = new Path();
 		mPrevPath = new Path();
 
+		mWindowRect = new RectF();
+		mPathRect = new RectF();
+
+		mMatrix = new Matrix();
+
 		mTmpPoint = new PointF();
 		mPrevPoint = new PointF();
+		mPrevPoint2 = new PointF();
 
 		mPathPaint = new Paint();
 		initPaint();
@@ -64,41 +79,124 @@ public abstract class Graph<T> {
 	}
 
 	public void draw(Canvas canvas) {
-		canvas.drawPath(mPath, mPathPaint);
+		Log.d("Graph", "Drawing");
+		mPath.computeBounds(mPathRect, false);
+		mMatrix.setRectToRect(mPathRect, mWindowRect, Matrix.ScaleToFit.FILL);
+		mPath.transform(mMatrix, mDrawPath);
+
+		canvas.drawPath(mDrawPath, mPathPaint);
 	}
 
-//	public void add(T point) {
-//		getPoint(point, mTmpPoint);
-//
-//		float px = (p.x * mXFactor + mXOffset);
-//		float prx = (prev.x * mXFactor + mXOffset);
-//		float pnx = (next.x * mXFactor + mXOffset);
-//		float py = (p.y * mYFactor + mYOffset);
-//		float pry = (prev.y * mYFactor + mYOffset);
-//		float pny = (next.y * mYFactor + mYOffset);
-//
-//		float dx = (pnx - prx) / 3;
-//		float dy = (pny - pry) / 3;
-//
-//		if (mPoints.size() == 0) {
-//			mPath.moveTo(px, py);
-//			mPrevPath.moveTo(px, py);
-//		} else {
-//			mPath.set(mPrevPath);
-//			mPath.cubicTo(prx, pry, px - dx, py - dy, px, py);
-//
-//			if (mPoints.size() > 1) {
-//
-//			}
-//		}
-//
-//
-//		mPoints.add(point);
-//	}
+	public void addAll(List<T> points) {
+		for (T lel : points) {
+			add(lel);
+		}
+	}
+
+	public void add(T point) {
+
+		if (mGotDimensions) {
+			getPoint(point, mTmpPoint);
+			Log.d("Graph", "Added " + mTmpPoint.x + ", " + mTmpPoint.y + ")");
+			pathToPoint(mTmpPoint);
+		}
+
+		mPoints.add(point);
+
+		if (mParent != null) {
+			mParent.notifyDatasetChanged();
+		}
+	}
+
+	private void pathToPoint(PointF p) {
+
+		float px = (p.x * mXFactor + mXOffset);
+		float py = (p.y * mYFactor + mYOffset);
+
+		PointF prev = mPoints.size() == 0 ? mTmpPoint : mPrevPoint;
+
+		float prx = (prev.x * mXFactor + mXOffset);
+		float pry = (prev.y * mYFactor + mYOffset);
+
+		// Used for mPrevPath
+		float pnx;
+		float pny;
+
+		float dx = 0;
+		float dy = 0;
+
+		if (mPoints.size() == 0) {
+			mPath.moveTo(px, py);
+			mPrevPath.moveTo(px, py);
+		} else {
+			mPath.set(mPrevPath);
+			Log.d("Graph", "Start " + prx + ", " + pry + ")" + "; End " + px + ", " + py + ")");
+			mPath.cubicTo(prx, pry, px - dx, py - dy, px, py);
+
+			if (mPoints.size() > 1) {
+				pnx = px;
+				pny = py;
+
+				px = prx;
+				py = pry;
+
+				PointF prr = mPoints.size() > 2 ? mPrevPoint2 : mPrevPoint;
+				prx = prr.x * mXFactor + mXOffset;
+				pry = prr.y * mYFactor + mYOffset;
+
+				dx = (pnx - prx) / 3;
+				dy = (pny - pry) / 3;
+
+				mPrevPath.cubicTo(prx, pry, px - dx, py - dy, px, py);
+			}
+		}
+
+		mPrevPoint2.set(mPrevPoint);
+		mPrevPoint.set(mTmpPoint);
+	}
 
 	public T get(int i) {
 		return mPoints.get(i);
 	}
 
+	public int size() {
+		return mPoints.size();
+	}
+
+	public void setDimensions(int width, int height) {
+		mWidth = width;
+		mHeight = height;
+
+		mWindowRect.set(0, 0, width, height);
+
+		mYOffset = mHeight;
+
+		if (!mGotDimensions) {
+			for (T lel : mPoints) {
+				getPoint(lel, mTmpPoint);
+				pathToPoint(mTmpPoint);
+			}
+		}
+
+		mGotDimensions = true;
+	}
+
+	public void reset() {
+		mPrevPath.reset();
+		mPath.reset();
+		mDrawPath.reset();
+	}
+
+	public void setParent(GraphView parent) {
+		mParent = parent;
+		mParent.notifyDatasetChanged();
+	}
+
+	/**
+	 * Transforms the data from point into a PointF, suitable for plotting.
+	 *
+	 * @param point
+	 * @param resultPoint
+	 */
 	public abstract void getPoint(T point, PointF resultPoint);
 }

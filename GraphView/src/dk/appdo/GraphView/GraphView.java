@@ -31,7 +31,7 @@ public class GraphView extends FrameLayout {
 
 	private int mGraphYAxisDirection = DEFAULT_GRAPH_DIRECTION;
 
-	private List<Point> mData = new ArrayList<Point>();
+	private List<Graph> mGraphs = new ArrayList<Graph>();
 
 	private RotatingQueue<Point> mQueue;
 
@@ -90,23 +90,13 @@ public class GraphView extends FrameLayout {
 		mGraphYAxisDirection = direction;
 	}
 
+	public void addGraph(Graph g) {
+		mGraphs.add(g);
+		g.setParent(this);
+	}
+
 	public void setDrawDataPoints(boolean toDraw) {
 		mDrawDataPoints = toDraw;
-	}
-
-	public void addPoint(Point p) {
-		mData.add(p);
-		updateMaxMinVal(p);
-		addToQueueIfNotNull(p);
-		mView.invalidate();
-	}
-
-	public void addAllPoints(List<Point> points) {
-		mData.addAll(points);
-		updateMaxMinVal(points);
-		addToQueueIfNotNull(points);
-
-		mView.invalidate();
 	}
 
 	private void addToQueueIfNotNull(Point p) {
@@ -149,18 +139,8 @@ public class GraphView extends FrameLayout {
 		mDrawXAxis = show;
 	}
 
-	/**
-	 * Sets the number of points shown
-	 *
-	 * @param width
-	 */
-	public void setDataWidth(int width) {
-		mQueue = new RotatingQueue<Point>(width);
-		mDataWidth = width;
-
-		for (Point p : mData) {
-			mQueue.insertElement(p);
-		}
+	public void notifyDatasetChanged() {
+		mView.invalidate();
 	}
 
 	private class CanvasView extends View {
@@ -178,49 +158,54 @@ public class GraphView extends FrameLayout {
 
 		@Override
 		protected void onDraw(Canvas canvas) {
+//
+//			float xFactor = 1;
+//			float yFactor = mGraphYAxisDirection;
+//			float xOffset = 0;
+//			float yOffset = (mHeight * (1 - mGraphXBase));
+//
+//			Matrix mMatrix = new Matrix();
+//
+//			if (mDrawXAxis) {
+//				canvas.drawLine(0, yOffset, mWidth, yOffset, mGraphPaint);
+//			}
+//
+//			mPath.reset();
+//			if (mData.size() > 0) {
+//				mPath.moveTo(mData.get(0).x * xFactor + xOffset, mData.get(0).y * yFactor + yOffset);
+//				for (int i = 1; i < mData.size(); i++) {
+//					Point p = mData.get(i);
+//					Point prev = mData.get(i - 1);
+//					Point next;
+//					if (i < mData.size() - 1)
+//						next = mData.get(i + 1);
+//					else
+//						next = p;
+//
+//					float px = (p.x * xFactor + xOffset);
+//					float prx = (prev.x * xFactor + xOffset);
+//					float pnx = (next.x * xFactor + xOffset);
+//					float py = (p.y * yFactor + yOffset);
+//					float pry = (prev.y * yFactor + yOffset);
+//					float pny = (next.y * yFactor + yOffset);
+//
+//					float dx = (pnx - prx) / 3;
+//					float dy = (pny - pry) / 3;
+//
+//					mPath.cubicTo(prx, pry, px - dx, py - dy, px, py);
+//
+//					if (mDrawDataPoints)
+//						canvas.drawCircle(px, py, 10, mGraphPaint);
+//				}
+//				mPath.computeBounds(mPathBounds, false);
+//				mMatrix.setRectToRect(mPathBounds, mViewBounds, Matrix.ScaleToFit.FILL);
+//				mPath.transform(mMatrix);
+//				canvas.drawPath(mPath, mGraphPaint);
+//			}
 
-			float xFactor = 1;
-			float yFactor = mGraphYAxisDirection;
-			float xOffset = 0;
-			float yOffset = (mHeight * (1 - mGraphXBase));
-
-			Matrix mMatrix = new Matrix();
-
-			if (mDrawXAxis) {
-				canvas.drawLine(0, yOffset, mWidth, yOffset, mGraphPaint);
-			}
-
-			mPath.reset();
-			if (mData.size() > 0) {
-				mPath.moveTo(mData.get(0).x * xFactor + xOffset, mData.get(0).y * yFactor + yOffset);
-				for (int i = 1; i < mData.size(); i++) {
-					Point p = mData.get(i);
-					Point prev = mData.get(i - 1);
-					Point next;
-					if (i < mData.size() - 1)
-						next = mData.get(i + 1);
-					else
-						next = p;
-
-					float px = (p.x * xFactor + xOffset);
-					float prx = (prev.x * xFactor + xOffset);
-					float pnx = (next.x * xFactor + xOffset);
-					float py = (p.y * yFactor + yOffset);
-					float pry = (prev.y * yFactor + yOffset);
-					float pny = (next.y * yFactor + yOffset);
-
-					float dx = (pnx - prx) / 3;
-					float dy = (pny - pry) / 3;
-
-					mPath.cubicTo(prx, pry, px - dx, py - dy, px, py);
-
-					if (mDrawDataPoints)
-						canvas.drawCircle(px, py, 10, mGraphPaint);
-				}
-				mPath.computeBounds(mPathBounds, false);
-				mMatrix.setRectToRect(mPathBounds, mViewBounds, Matrix.ScaleToFit.FILL);
-				mPath.transform(mMatrix);
-				canvas.drawPath(mPath, mGraphPaint);
+			for (Graph g : mGraphs) {
+				g.setDimensions(canvas.getWidth(), canvas.getHeight());
+				g.draw(canvas);
 			}
 		}
 
