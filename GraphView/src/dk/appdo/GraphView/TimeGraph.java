@@ -18,7 +18,7 @@ public class TimeGraph extends Graph<TimeGraph.TimePoint> {
 
 		long millisSinceFirst = point.getTime() - first;
 
-		float x = millisSinceFirst / MILLIS_IN_DAY;
+		float x = millisSinceFirst / MILLIS_IN_SECOND;
 		float y = point.getData().floatValue();
 
 		resultPoint.set(x, y);
